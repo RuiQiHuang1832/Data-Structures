@@ -1,8 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React, { Component } from 'react'
 import Button from './Button'
-//back button
-//deal with if null cases, empty arrays, etc...
 
 export default class Tree extends Component {
     constructor(props) {
@@ -10,14 +8,29 @@ export default class Tree extends Component {
         this.state = {
             initial: props.data.initial,
             choices: props.data.choices,
-            node: ""
+            node: "",
         }
-        this.parent = null
+        this.path = [""]
     }
+
+    handleBack(parent) {
+        this.path.pop();
+        this.setCurrent(parent)
+    }
+
+    setPath(current) {
+        if (!this.path.includes(current)) {
+            this.path.push(current)
+        }
+    }
+
     //
     setCurrent(current) {
-        this.parent = current;
         this.setState({ current: current })
+        this.setPath(current)
+        // this.addParent();
+
+
     }
     //
     getCurrent() {
@@ -26,7 +39,12 @@ export default class Tree extends Component {
     //
     containChild(data) {
         let obj = this.state.choices[data]
-        return 'children' in obj
+        try {
+            return 'children' in obj
+        } catch (err) {
+            console.log(err)
+            return false
+        }
     }
     //
     getChild(data) {
@@ -38,14 +56,19 @@ export default class Tree extends Component {
 
     //
     getName(data) {
-        if (this.getCurrent() == null) {
+        if (data == null || data === undefined || this.path.length === 1) {
             return "Pick a start"
         }
-        return this.state.choices[data].name
+        try {
+            return this.state.choices[data].name
+        } catch (err) {
+            console.log("Node does not exist. Exiting.")
+            return ["completed"]
+        }
     }
     //
     getData(data) {
-        if (this.getCurrent() == null) {
+        if (this.getCurrent() == null || this.path.length === 1) {
             return this.state.initial
         }
         return this.getChild(data)
@@ -72,10 +95,25 @@ export default class Tree extends Component {
     handleSubmit() {
         const val = this.state.node.split(",")
         const children = val[2].split(" ")
-        this.addNode(val[0], val[1], [...children])
+        console.log(children)
+        this.addNode(val[0], val[1], children[0] === "" ? null : [...children])
     }
+    //for back button
+    // addParent() {
+    //     let children = this.getChild(this.parent)
+    //     if (children[0] === "completed") {
+    //         return null
+    //     }
+    //     for (let i = 0; i < children.length; i++) {
+    //         this.setState((state) => {
+    //             const updatedChoices = { ...state.choices }
+    //             updatedChoices[children[i]]["parent"] = this.parent;
+    //             return { choices: updatedChoices };
+    //         });
+    //     }
 
-    //just need to implement back button
+    // }
+
     render() {
         return (
             <div style={container}>
@@ -83,14 +121,15 @@ export default class Tree extends Component {
                     onClick={(e) => this.setCurrent(e)}
                     data={this.getData(this.getCurrent())}
                     name={this.getName(this.getCurrent())}
-                    parent={this.parent}
+                    parent={null}
                 />
                 <form >
-                    <label>Add a new node, seperate by comma, <br></br> eg. key, name, children</label><br></br>
+                    <label>Add a new node, seperate by comma, <br></br> eg. key (stay-in), name(anything), children(seperated by space ONLY)<br></br>Also possible to add leaf node. Just remove children (but keep commas)</label><br></br>
+                    <b>When adding children, do not include space between comma and first child</b><br></br>
                     <input value={this.state.node} onChange={(e) => this.handleNodeChange(e)} type={"text"} ></input>
                     <button type='button' onClick={() => this.handleSubmit()} >Submit</button>
                 </form>
-                {this.parent == null ? "" : <button>Back</button>}
+                {this.path.length === 1 ? "" : <button onClick={() => this.handleBack(this.path[this.path.length - 2])}>Back</button>}
             </div >
         )
     }
